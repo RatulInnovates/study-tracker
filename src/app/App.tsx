@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Search } from "lucide-react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Link, Route, Switch, useRoute } from "wouter";
 import { Toaster } from "sonner";
@@ -5,6 +7,7 @@ import { getDb } from "../db/client";
 import { migrate } from "../db/migrate";
 import { seedIfNeeded } from "../db/seed";
 import { bootSettings } from "../features/settings/theme";
+import { CommandPalette } from "./CommandPalette";
 import { NAV } from "./nav";
 
 const queryClient = new QueryClient();
@@ -36,6 +39,7 @@ function SidebarLink({ path, label, icon: Icon }: { path: string; label: string;
 }
 
 function Shell() {
+  const [paletteOpen, setPaletteOpen] = useState(false);
   return (
     <div className="flex h-full">
       <nav aria-label="Primary" className="flex w-52 shrink-0 flex-col gap-0.5 border-r border-line bg-surface p-2 max-[900px]:w-12">
@@ -43,6 +47,15 @@ function Shell() {
         {NAV.map((n) => (
           <SidebarLink key={n.path} path={n.path} label={n.label} icon={n.icon} />
         ))}
+        <button
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Open command palette"
+          className="press mt-auto flex items-center gap-2.5 rounded-sm border border-line px-2.5 py-1.5 text-[13px] text-muted hover:text-text"
+        >
+          <Search size={16} aria-hidden />
+          <span className="max-[900px]:hidden">Jump to…</span>
+          <kbd className="num ml-auto text-[12px] max-[900px]:hidden">Ctrl K</kbd>
+        </button>
       </nav>
       <main className="min-w-0 flex-1 overflow-y-auto">
         <Switch>
@@ -54,6 +67,7 @@ function Shell() {
           </Route>
         </Switch>
       </main>
+      <CommandPalette open={paletteOpen} setOpen={setPaletteOpen} />
     </div>
   );
 }
