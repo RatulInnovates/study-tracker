@@ -5,6 +5,7 @@ import { getDb } from "../db/client";
 import { migrate } from "../db/migrate";
 import { seedIfNeeded } from "../db/seed";
 import { bootSettings } from "../features/settings/theme";
+import { CommandPalette } from "./CommandPalette";
 import { NAV } from "./nav";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ function Shell() {
           </Route>
         </Switch>
       </main>
+      <CommandPalette />
     </div>
   );
 }

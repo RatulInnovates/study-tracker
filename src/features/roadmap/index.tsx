@@ -1,6 +1,7 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Search } from "lucide-react";
+import { useSearch } from "wouter";
 import { getDb } from "../../db/client";
 import { loadRoadmap, type RoadmapSession } from "../../db/roadmap";
 import { hasProjectDebt, isFiltering, matches, NO_FILTERS, type Filters } from "../../domain/roadmap";
@@ -51,6 +52,11 @@ export function Roadmap() {
   const [openLevels, setOpenLevels] = useState<Set<number>>(new Set());
   const [closedPhases, setClosedPhases] = useState<Set<number>>(new Set());
   const [openId, setOpenId] = useState<number | null>(null);
+  const search = useSearch();
+  useEffect(() => {
+    const id = Number(new URLSearchParams(search).get("s")); // set by the command palette
+    if (id) setOpenId(id);
+  }, [search]);
   const { data } = useQuery({ queryKey: ["roadmap"], queryFn: async () => loadRoadmap(await getDb()) });
 
   const filtering = isFiltering(f);
