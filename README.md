@@ -10,16 +10,24 @@ It ships with the *AI Engineer Roadmap 2026* (16 levels, 165 modules, 286 sessio
 2. The builds are unsigned. Windows SmartScreen ("More info" > "Run anyway") and macOS Gatekeeper (right-click the app > Open) ask you to confirm the first launch.
 3. On first launch, choose a roadmap (see below).
 
-## AI features: bring your own Claude account
+## AI features: bring your own AI
 
-Reviews, quizzes, interview practice and resume bullets call the **Claude Code CLI** installed on your machine, using your own Claude Pro or Max subscription. The app has no API keys and sends nothing anywhere else.
+Reviews, quizzes, interview practice and resume bullets need a model. Pick one in Settings > AI features (or on first launch):
+
+- **Claude Code (default, no API key):** uses the Claude Code CLI installed on your machine with your own Claude Pro or Max login. This is the only option the author has tested.
+- **API key:** Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, or any OpenAI-compatible server. Billed per token by that provider, separately from a Claude subscription.
+- **Local model:** Ollama (no key, nothing leaves your machine).
+
+The key is saved in its own file in the app config folder, never in the database, so backups and exports cannot leak it, and it is only sent to the provider's URL. Settings shows which features may not work well with the provider you picked: code review needs a long context window and strict JSON, so small local models may fail on it; quiz and interview grading quality depends on the model. Code review sends your repo diff (not `.env`, key or ignored files) to whichever provider you chose.
+
+For the Claude Code option:
 
 ```
 npm install -g @anthropic-ai/claude-code
 claude          # run once and sign in
 ```
 
-Settings > AI features shows whether the app can find it. Without it everything else (planning, notes, timer, projects, analytics, backups) still works.
+Settings > AI features shows whether the app can find it, and "Test connection" checks any provider. Without it everything else (planning, notes, timer, projects, analytics, backups) still works.
 
 ## Use your own roadmap
 
@@ -60,6 +68,10 @@ Loading a roadmap **replaces** the current one and deletes the progress, notes, 
 
 - One SQLite file in the app's config folder (Settings > Backup shows the backups folder). A backup is taken automatically once a day, newest 7 kept. You can export the database or a JSON dump and import a backup there.
 - The reviewer only runs commands you allow per project, and never sends `.env*`, key files or gitignored files to the model.
+
+## Build the installer yourself
+
+`npm run package` builds a Windows `Study Tracker_<version>_x64-setup.exe` into `src-tauri/target/release/bundle/nsis/`. If the Rust build runs out of memory, set `CARGO_BUILD_JOBS=2` first.
 
 ## Build from source
 
