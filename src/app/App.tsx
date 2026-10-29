@@ -14,6 +14,7 @@ async function boot() {
   const db = await getDb();
   await migrate(db);
   await seedIfNeeded(db);
+  return true; // react-query rejects undefined results
 }
 
 function SidebarLink({ path, label, icon: Icon }: { path: string; label: string; icon: (typeof NAV)[number]["icon"] }) {
