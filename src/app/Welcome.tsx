@@ -1,5 +1,5 @@
 import { RoadmapImport } from "../features/settings/RoadmapImport";
-import { ClaudeStatus } from "../features/settings/ClaudeStatus";
+import { AiSettings } from "../features/settings/AiSettings";
 
 /** First run: nothing is loaded until the user picks a roadmap. */
 export function Welcome({ onLoaded }: { onLoaded: () => void }) {
@@ -15,8 +15,8 @@ export function Welcome({ onLoaded }: { onLoaded: () => void }) {
           <RoadmapImport hasProgress={false} onLoaded={onLoaded} />
         </section>
         <section aria-labelledby="ai" className="space-y-3">
-          <h2 id="ai" className="font-semibold">2. Connect Claude (optional)</h2>
-          <ClaudeStatus />
+          <h2 id="ai" className="font-semibold">2. Connect an AI (optional)</h2>
+          <AiSettings />
         </section>
       </div>
     </div>

@@ -249,20 +249,139 @@ async fn claude_check() -> Result<String, String> {
     .map_err(|e| e.to_string())?
 }
 
-/// Sends the prompt on stdin to `claude -p --output-format json` and returns its raw stdout.
+/// Runs `claude -p --output-format json` with the prompt on stdin and returns the answer text (the `result` field).
+fn claude_text(prompt: String) -> Result<String, String> {
+    let mut c = claude("-p --output-format json");
+    c.current_dir(std::env::temp_dir());
+    let (code, out) = run_cmd(c, Some(prompt), 240)?;
+    if code != 0 {
+        return Err(format!("claude exited with {code}: {out}"));
+    }
+    let v: serde_json::Value = serde_json::from_str(&out).map_err(|_| format!("claude CLI returned non-JSON output: {}", out.chars().take(200).collect::<String>()))?;
+    match v["result"].as_str() {
+        Some(t) if v["is_error"] != true => Ok(t.to_string()),
+        _ => Err(format!("claude CLI error: {}", v["result"].as_str().unwrap_or(&out).chars().take(300).collect::<String>())),
+    }
+}
+
+// ---- AI provider ---------------------------------------------------------------
+// Settings and the API key live in their own file (not the DB), so backups and JSON exports can never carry the key.
+// shortcut: the key is stored as plain text in the user's config dir (0600 on unix); move to the OS keychain if shared machines matter.
+
+const AI_CONFIG: &str = "ai-config.json";
+
+#[derive(serde::Serialize, serde::Deserialize, Default, Clone)]
+struct AiConfig {
+    provider: String, // "claude-cli" | "anthropic" | anything else = OpenAI-compatible at base_url
+    base_url: String,
+    model: String,
+    api_key: String,
+}
+
+fn load_ai(app: &AppHandle) -> AiConfig {
+    let mut c: AiConfig = config_dir(app)
+        .ok()
+        .and_then(|d| fs::read_to_string(d.join(AI_CONFIG)).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default();
+    if c.provider.is_empty() {
+        c.provider = "claude-cli".into();
+    }
+    c
+}
+
+#[derive(serde::Serialize)]
+struct AiPublic {
+    provider: String,
+    base_url: String,
+    model: String,
+    has_key: bool,
+}
+
+/// Never returns the key itself.
 #[tauri::command]
-async fn claude_ask(prompt: String) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let mut c = claude("-p --output-format json");
-        c.current_dir(std::env::temp_dir());
-        let (code, out) = run_cmd(c, Some(prompt), 240)?;
-        if code != 0 {
-            return Err(format!("claude exited with {code}: {out}"));
+fn ai_get_config(app: AppHandle) -> AiPublic {
+    let c = load_ai(&app);
+    AiPublic { provider: c.provider, base_url: c.base_url, model: c.model, has_key: !c.api_key.is_empty() }
+}
+
+fn is_local(url: &str) -> bool {
+    let host = url.split("://").nth(1).unwrap_or("").split(['/', ':']).next().unwrap_or("");
+    host == "localhost" || host == "127.0.0.1" || host == "[::1]"
+}
+
+/// `api_key`: Some(non-empty) replaces the key, None keeps it. Changing provider or URL without a new key clears it,
+/// so a key can never be sent to a host it wasn't entered for.
+#[tauri::command]
+fn ai_set_config(app: AppHandle, provider: String, base_url: String, model: String, api_key: Option<String>, clear_key: bool) -> Result<(), String> {
+    let old = load_ai(&app);
+    let (base_url, model) = (base_url.trim().trim_end_matches('/').to_string(), model.trim().to_string());
+    let moved = old.provider != provider || old.base_url != base_url;
+    let key = match api_key.map(|k| k.trim().to_string()).filter(|k| !k.is_empty()) {
+        Some(k) => k,
+        None if clear_key || moved => String::new(),
+        None => old.api_key,
+    };
+    if provider != "claude-cli" {
+        if model.is_empty() {
+            return Err("Model is required.".into());
         }
-        Ok(out)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+        if provider != "anthropic" && !(base_url.starts_with("https://") || base_url.starts_with("http://")) {
+            return Err("Base URL must start with https:// (or http:// for a local server).".into());
+        }
+        if !key.is_empty() && base_url.starts_with("http://") && !is_local(&base_url) {
+            return Err("Refusing to send an API key over plain http to a remote host. Use https://.".into());
+        }
+    }
+    let dir = config_dir(&app)?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(AI_CONFIG);
+    fs::write(&path, serde_json::to_string_pretty(&AiConfig { provider, base_url, model, api_key: key }).unwrap()).map_err(|e| e.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(&path, fs::Permissions::from_mode(0o600));
+    }
+    Ok(())
+}
+
+fn http_json(req: ureq::Request, body: serde_json::Value) -> Result<serde_json::Value, String> {
+    match req.send_json(body) {
+        Ok(r) => r.into_json().map_err(|e| format!("bad response: {e}")),
+        Err(ureq::Error::Status(code, r)) => Err(format!("HTTP {code}: {}", r.into_string().unwrap_or_default().chars().take(300).collect::<String>())),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+fn api_text(c: AiConfig, prompt: String) -> Result<String, String> {
+    let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(240)).build();
+    if c.provider == "anthropic" {
+        let url = if c.base_url.is_empty() { "https://api.anthropic.com".to_string() } else { c.base_url };
+        let v = http_json(
+            agent.post(&format!("{url}/v1/messages")).set("x-api-key", &c.api_key).set("anthropic-version", "2023-06-01"),
+            serde_json::json!({ "model": c.model, "max_tokens": 8192, "messages": [{ "role": "user", "content": prompt }] }),
+        )?;
+        let text: String = v["content"].as_array().map(|a| a.iter().filter_map(|b| b["text"].as_str()).collect()).unwrap_or_default();
+        return if text.is_empty() { Err(format!("empty reply: {v}")) } else { Ok(text) };
+    }
+    let mut req = agent.post(&format!("{}/chat/completions", c.base_url));
+    if !c.api_key.is_empty() {
+        req = req.set("Authorization", &format!("Bearer {}", c.api_key));
+    }
+    let v = http_json(req, serde_json::json!({ "model": c.model, "messages": [{ "role": "user", "content": prompt }] }))?;
+    match v["choices"][0]["message"]["content"].as_str() {
+        Some(t) if !t.is_empty() => Ok(t.to_string()),
+        _ => Err(format!("empty reply: {v}")),
+    }
+}
+
+/// The one entry point for every AI feature: returns the model's reply text from whichever provider is configured.
+#[tauri::command]
+async fn ai_ask(app: AppHandle, prompt: String) -> Result<String, String> {
+    let c = load_ai(&app);
+    tauri::async_runtime::spawn_blocking(move || if c.provider == "claude-cli" { claude_text(prompt) } else { api_text(c, prompt) })
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -277,7 +396,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![backups, write_text, stage_restore, restart_app, get_allowlist, set_allowlist, run_allowed, repo_context, claude_check, claude_ask])
+        .invoke_handler(tauri::generate_handler![backups, write_text, stage_restore, restart_app, get_allowlist, set_allowlist, run_allowed, repo_context, claude_check, ai_get_config, ai_set_config, ai_ask])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
