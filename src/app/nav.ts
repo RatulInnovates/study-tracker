@@ -1,10 +1,11 @@
 import type { ComponentType } from "react";
-import { ClipboardCheck, CalendarCheck, FolderKanban, Map, Settings, type LucideIcon } from "lucide-react";
+import { ClipboardCheck, Layers, CalendarCheck, FolderKanban, Map, Settings, type LucideIcon } from "lucide-react";
 import { Today } from "../features/today";
 import { Roadmap } from "../features/roadmap";
 import { Projects } from "../features/projects";
 import { SettingsPage } from "../features/settings";
 import { Review } from "../features/review";
+import { Quiz } from "../features/quiz";
 
 export interface NavItem {
   path: string;
@@ -19,5 +20,6 @@ export const NAV: NavItem[] = [
   { path: "/roadmap", label: "Roadmap", icon: Map, page: Roadmap },
   { path: "/projects", label: "Projects", icon: FolderKanban, page: Projects },
   { path: "/review", label: "Review", icon: ClipboardCheck, page: Review },
+  { path: "/quiz", label: "Quiz & Cards", icon: Layers, page: Quiz },
   { path: "/settings", label: "Settings", icon: Settings, page: SettingsPage },
 ];
