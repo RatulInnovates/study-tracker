@@ -14,3 +14,7 @@ export async function dumpAll(db: Db) {
   for (const t of tables) out[t.name] = await db.select(`SELECT * FROM "${t.name}"`);
   return out;
 }
+
+export async function roadmapName(db: Db) {
+  return (await getSettings(db)).roadmap_name || "my study plan";
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGradePrompt, parseFeedback, parseQuestion } from "./interview";
+import { buildGradePrompt, buildQuestionPrompt, parseFeedback, parseQuestion } from "./interview";
 
 describe("interview", () => {
   it("parses a question and rejects an empty one", () => {
@@ -16,4 +16,9 @@ describe("interview", () => {
     expect(buildGradePrompt("design", "RAG", "q", "a")).toContain("failure modes");
     expect(buildGradePrompt("question", "RAG", "q", "")).toContain("(blank)");
   });
+});
+
+it("question prompts name the roadmap topic, not a fixed field", () => {
+  expect(buildQuestionPrompt("question", "A1 Basics", [], "Spanish")).toContain('"Spanish"');
+  expect(buildQuestionPrompt("design", "A1 Basics", ["old"], "Spanish")).toContain("Do not repeat these: old");
 });

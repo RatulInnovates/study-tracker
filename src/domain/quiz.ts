@@ -54,8 +54,8 @@ export function nextDifficulty(recentScores: number[]): Difficulty {
 
 export const scorePct = (results: Result[]) => (results.length ? Math.round((results.filter((r) => r.correct).length / results.length) * 100) : 0);
 
-export function buildQuizPrompt(p: { title: string; module: string; outcome: string; topics: string[]; difficulty: Difficulty }) {
-  return `You write quiz questions for a learner studying the AI Engineer roadmap.
+export function buildQuizPrompt(p: { topic: string; title: string; module: string; outcome: string; topics: string[]; difficulty: Difficulty }) {
+  return `You write quiz questions for a learner studying "${p.topic}".
 Session: ${p.title}
 Module: ${p.module}
 Outcome: ${p.outcome}

@@ -5,9 +5,10 @@ import { Link, Route, Switch, useRoute } from "wouter";
 import { Toaster } from "sonner";
 import { getDb } from "../db/client";
 import { migrate } from "../db/migrate";
-import { seedIfNeeded } from "../db/seed";
+import { hasRoadmap } from "../db/roadmapImport";
 import { bootSettings } from "../features/settings/theme";
 import { CommandPalette } from "./CommandPalette";
+import { Welcome } from "./Welcome";
 import { NAV } from "./nav";
 
 const queryClient = new QueryClient();
@@ -17,9 +18,8 @@ async function boot() {
     throw new Error("Open the desktop window that `npm run tauri dev` launches. A browser tab has no database.");
   const db = await getDb();
   await migrate(db);
-  await seedIfNeeded(db);
   await bootSettings(db);
-  return true; // react-query rejects undefined results
+  return hasRoadmap(db); // false = first run, show the Welcome screen
 }
 
 function SidebarLink({ path, label, icon: Icon }: { path: string; label: string; icon: (typeof NAV)[number]["icon"] }) {
@@ -73,7 +73,7 @@ function Shell() {
 }
 
 function BootGate() {
-  const { error, isPending } = useQuery({ queryKey: ["boot"], queryFn: boot, staleTime: Infinity, retry: false });
+  const { data: ready, error, isPending } = useQuery({ queryKey: ["boot"], queryFn: boot, staleTime: Infinity, retry: false });
   if (error)
     return (
       <div className="p-8" role="alert">
@@ -82,6 +82,7 @@ function BootGate() {
       </div>
     );
   if (isPending) return <div className="p-8 text-muted">Preparing your roadmap…</div>;
+  if (!ready) return <Welcome onLoaded={() => queryClient.setQueryData(["boot"], true)} />;
   return <Shell />;
 }
 

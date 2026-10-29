@@ -27,7 +27,7 @@ export function buildReadme(p: PortfolioInput): string {
 export const BULLETS_HINT = `{"bullets":["string"]}`;
 
 export function buildBulletsPrompt(p: PortfolioInput) {
-  return `Write 3 resume bullets for this AI engineering project, each in STAR style (situation/task implied, then the action and a measurable result) in one line of at most 30 words, starting with a strong past-tense verb.
+  return `Write 3 resume bullets for this project, each in STAR style (situation/task implied, then the action and a measurable result) in one line of at most 30 words, starting with a strong past-tense verb.
 Use ONLY the facts below. Never invent numbers, tools or outcomes; if there is no metric, describe the outcome qualitatively.
 
 Project: ${p.title}

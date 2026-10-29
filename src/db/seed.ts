@@ -1,10 +1,13 @@
 import type { Db } from "./types";
 import roadmap from "../../seed/roadmap.json";
+import { normalizeRoadmap, type RoadmapData } from "../domain/roadmapFile";
 
 type Stmt = [sql: string, params: unknown[]];
 
 /** Every statement is INSERT OR IGNORE, so a half-finished seed can simply be re-run. */
-export function seedStatements(data: typeof roadmap = roadmap): Stmt[] {
+export const bundledRoadmap = () => normalizeRoadmap({ name: "AI Engineer Roadmap 2026", ...roadmap });
+
+export function seedStatements(data: RoadmapData = bundledRoadmap()): Stmt[] {
   const out: Stmt[] = [];
   const phases = new Map<number, string>();
   let seq = 0;
@@ -30,12 +33,17 @@ export function seedStatements(data: typeof roadmap = roadmap): Stmt[] {
   return out;
 }
 
-const SEED_VERSION = "1";
 
 export async function seedIfNeeded(db: Db): Promise<boolean> {
   const [row] = await db.select<{ value: string }>("SELECT value FROM settings WHERE key = 'seed_version'");
-  if (row?.value === SEED_VERSION) return false;
-  for (const [sql, params] of seedStatements()) await db.execute(sql, params);
-  await db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('seed_version', ?)", [SEED_VERSION]);
+  if (row) return false; // any value: a custom import also sets it, and must never be overwritten by the bundled roadmap
+  await writeRoadmap(db, bundledRoadmap());
   return true;
+}
+
+/** Writes `data` and marks the DB as seeded. Callers wipe first when replacing (see replaceRoadmap). */
+export async function writeRoadmap(db: Db, data: RoadmapData) {
+  for (const [sql, params] of seedStatements(data)) await db.execute(sql, params);
+  await db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('roadmap_name', ?)", [data.name]);
+  await db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('seed_version', '1')");
 }
