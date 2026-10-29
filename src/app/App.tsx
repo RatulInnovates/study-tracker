@@ -9,6 +9,8 @@ import { NAV } from "./nav";
 const queryClient = new QueryClient();
 
 async function boot() {
+  if (!("__TAURI_INTERNALS__" in window))
+    throw new Error("Open the desktop window that `npm run tauri dev` launches. A browser tab has no database.");
   const db = await getDb();
   await migrate(db);
   await seedIfNeeded(db);
