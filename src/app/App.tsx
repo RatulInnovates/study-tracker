@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { getDb } from "../db/client";
 import { migrate } from "../db/migrate";
 import { seedIfNeeded } from "../db/seed";
+import { bootSettings } from "../features/settings/theme";
 import { NAV } from "./nav";
 
 const queryClient = new QueryClient();
@@ -14,6 +15,7 @@ async function boot() {
   const db = await getDb();
   await migrate(db);
   await seedIfNeeded(db);
+  await bootSettings(db);
   return true; // react-query rejects undefined results
 }
 
