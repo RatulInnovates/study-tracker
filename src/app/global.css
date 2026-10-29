@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/* Tokens. Never hardcode colors in components; use these (bg-surface, text-muted, ...). */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #0e1012;
+  --surface: #14171a;
+  --raised: #1b1f23;
+  --line: #262b30;
+  --text: #e6e9eb;
+  --muted: #8a949c;
+  --accent: #2dd4a0;
+  --accent-fg: #06251b;
+  --danger: #f0706a;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --raised: #eef0f2;
+  --line: #dfe3e6;
+  --text: #15191c;
+  --muted: #5d6870;
+  --accent: #0f9d74;
+  --accent-fg: #ffffff;
+  --danger: #c93c35;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* the app shell scrolls its own panes */
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Pressable things feel pressed; only specific properties transition. */
+.press {
+  transition: transform 140ms var(--ease-out), background-color 140ms var(--ease-out);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}
