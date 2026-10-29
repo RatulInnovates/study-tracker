@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Command } from "cmdk";
 import { useLocation } from "wouter";
@@ -11,8 +11,7 @@ const GO: Record<string, string> = { t: "/", r: "/roadmap", p: "/projects", v: "
 const keyOf = (path: string) => Object.entries(GO).find(([, p]) => p === path)?.[0];
 const typing = (t: EventTarget | null) => !!(t as HTMLElement | null)?.closest?.("input,textarea,select,[contenteditable]");
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (v: boolean | ((o: boolean) => boolean)) => void }) {
   const [, go] = useLocation();
   const gAt = useRef(0);
   // Shares the Roadmap's cache entry; only fetched once the palette is first opened.
@@ -33,7 +32,7 @@ export function CommandPalette() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, go]);
+  }, [open, go, setOpen]);
 
   const pick = (to: string) => {
     setOpen(false);
