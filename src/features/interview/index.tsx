@@ -57,7 +57,8 @@ function Practice() {
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const limit = TIME_LIMIT[kind];
-  const elapsed = useElapsed(!!question && !feedback, question);
+  const [grading, setGrading] = useState(false);
+  const elapsed = useElapsed(!!question && !feedback && !grading, question);
 
   const ask = useMutation({
     mutationFn: async () => {
@@ -68,10 +69,12 @@ function Practice() {
     },
   });
   const grade = useMutation({
+    onMutate: () => setGrading(true),
+    onSettled: () => setGrading(false),
     mutationFn: async () => {
       const f = await askParsed(buildGradePrompt(kind, area, question!, answer), parseFeedback);
-      await saveAttempt(await getDb(), { kind, area, question: question!, answer, seconds: elapsed, score: f.score, feedback: f });
       setFeedback(f);
+      await saveAttempt(await getDb(), { kind, area, question: question!, answer, seconds: elapsed, score: f.score, feedback: f });
       qc.invalidateQueries({ queryKey: ["interview-attempts"] });
     },
   });
@@ -83,14 +86,14 @@ function Practice() {
       <div className="flex flex-wrap items-end gap-2">
         <label className="block">
           <span className="text-[12px] text-muted">Type</span>
-          <select value={kind} onChange={(e) => (setKind(e.target.value as Kind), setQuestion(null), setFeedback(null))} className={field}>
+          <select disabled={busy} value={kind} onChange={(e) => (setKind(e.target.value as Kind), setQuestion(null), setFeedback(null))} className={field}>
             <option value="question">Mock question (5 min)</option>
             <option value="design">System design (25 min)</option>
           </select>
         </label>
         <label className="block">
           <span className="text-[12px] text-muted">Area</span>
-          <select value={area} onChange={(e) => setArea(e.target.value)} className={field}>
+          <select disabled={busy} value={area} onChange={(e) => setArea(e.target.value)} className={field}>
             {AREAS.map((a) => <option key={a}>{a}</option>)}
           </select>
         </label>
@@ -239,7 +242,12 @@ export function Interview() {
           </div>
         }
       />
-      <div className="p-8">{tab === "practice" ? <Practice /> : tab === "history" ? <History /> : <Stories />}</div>
+      <div className="p-8">
+        {/* Practice stays mounted so switching tabs keeps the question, answer and timer. */}
+        <div hidden={tab !== "practice"}><Practice /></div>
+        {tab === "history" && <History />}
+        {tab === "stories" && <Stories />}
+      </div>
     </>
   );
 }
