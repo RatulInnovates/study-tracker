@@ -10,7 +10,7 @@ import { dumpAll, getSettings, setSetting } from "../../db/settings";
 import { isoDay, replan } from "../../db/today";
 import { MAX_PER_DAY } from "../../domain/scheduler";
 import { PageHeader } from "../../ui/PageHeader";
-import { ClaudeStatus } from "./ClaudeStatus";
+import { AiSettings } from "./AiSettings";
 import { RoadmapImport } from "./RoadmapImport";
 import { FONT_MAX, FONT_MIN, applyFontScale, applyTheme } from "./theme";
 
@@ -160,7 +160,7 @@ export function SettingsPage() {
 
         <section aria-labelledby="ai" className="space-y-3">
           <h2 id="ai" className="font-semibold">AI features</h2>
-          <ClaudeStatus />
+          <AiSettings />
         </section>
 
         <section aria-labelledby="backup" className="space-y-3">

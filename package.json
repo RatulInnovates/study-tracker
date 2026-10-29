@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "package": "tauri build --bundles nsis",
     "test": "vitest run",
     "scrape": "tsx scripts/scrape-roadmap.ts"
   },
