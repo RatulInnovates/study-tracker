@@ -40,3 +40,6 @@ export const updateStory = (db: Db, s: Story) =>
   db.execute("UPDATE stories SET title = ?, situation = ?, task = ?, action = ?, result = ? WHERE id = ?", [s.title, s.situation, s.task, s.action, s.result, s.id]);
 
 export const deleteStory = (db: Db, id: number) => db.execute("DELETE FROM stories WHERE id = ?", [id]);
+
+/** Practice areas are the roadmap's level titles, so any imported roadmap works. */
+export const areaTitles = async (db: Db) => (await db.select<{ title: string }>("SELECT title FROM levels ORDER BY num")).map((r) => r.title);

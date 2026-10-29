@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { getDb } from "../../db/client";
-import { addStory, deleteStory, recentAttempts, recentQuestions, saveAttempt, stories, updateStory, type Story } from "../../db/interview";
+import { roadmapName } from "../../db/settings";
+import { addStory, areaTitles, deleteStory, recentAttempts, recentQuestions, saveAttempt, stories, updateStory, type Story } from "../../db/interview";
 import { askParsed } from "../../ai/claude";
-import { AREAS, buildGradePrompt, buildQuestionPrompt, parseFeedback, parseQuestion, storyText, TIME_LIMIT, type Feedback, type Kind } from "../../domain/interview";
+import { buildGradePrompt, buildQuestionPrompt, parseFeedback, parseQuestion, storyText, TIME_LIMIT, type Feedback, type Kind } from "../../domain/interview";
 import { EmptyState } from "../../ui/EmptyState";
 import { PageHeader } from "../../ui/PageHeader";
 
@@ -52,7 +53,9 @@ function useElapsed(running: boolean, resetKey: unknown) {
 function Practice() {
   const qc = useQueryClient();
   const [kind, setKind] = useState<Kind>("question");
-  const [area, setArea] = useState<string>(AREAS[0]);
+  const areas = useQuery({ queryKey: ["interview-areas"], queryFn: async () => areaTitles(await getDb()) }).data ?? [];
+  const [picked, setArea] = useState<string>();
+  const area = picked && areas.includes(picked) ? picked : (areas[0] ?? "");
   const [question, setQuestion] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -63,7 +66,7 @@ function Practice() {
   const ask = useMutation({
     mutationFn: async () => {
       const prior = await recentQuestions(await getDb(), area, kind);
-      setQuestion(await askParsed(buildQuestionPrompt(kind, area, prior), parseQuestion));
+      setQuestion(await askParsed(buildQuestionPrompt(kind, area, prior, await roadmapName(await getDb())), parseQuestion));
       setAnswer("");
       setFeedback(null);
     },
@@ -94,7 +97,7 @@ function Practice() {
         <label className="block">
           <span className="text-[12px] text-muted">Area</span>
           <select disabled={busy} value={area} onChange={(e) => setArea(e.target.value)} className={field}>
-            {AREAS.map((a) => <option key={a}>{a}</option>)}
+            {areas.map((a) => <option key={a}>{a}</option>)}
           </select>
         </label>
         <button disabled={busy} onClick={() => (grade.reset(), ask.mutate())} className={primary}>

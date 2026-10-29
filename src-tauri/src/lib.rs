@@ -224,11 +224,36 @@ async fn repo_context(repo: String, base: String) -> Result<String, String> {
     .map_err(|e| e.to_string())?
 }
 
+/// `claude` command. GUI apps on macOS/Linux don't inherit the terminal's PATH, so add the usual install dirs.
+fn claude(args: &str) -> Command {
+    #[allow(unused_mut)] // only mutated on non-Windows
+    let mut c = shell(&format!("claude {args}"));
+    #[cfg(not(windows))]
+    {
+        let home = std::env::var("HOME").unwrap_or_default();
+        let extra = [format!("{home}/.local/bin"), format!("{home}/.claude/local"), format!("{home}/.npm-global/bin"), "/opt/homebrew/bin".into(), "/usr/local/bin".into()];
+        let path = std::env::var("PATH").unwrap_or_default();
+        c.env("PATH", format!("{}:{path}", extra.join(":")));
+    }
+    c
+}
+
+/// Returns the installed Claude Code version, or an error if the CLI is missing or broken.
+#[tauri::command]
+async fn claude_check() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(|| match run_cmd(claude("--version"), None, 20)? {
+        (0, out) => Ok(out.trim().to_string()),
+        (_, out) => Err(out.trim().to_string()),
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Sends the prompt on stdin to `claude -p --output-format json` and returns its raw stdout.
 #[tauri::command]
 async fn claude_ask(prompt: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let mut c = shell("claude -p --output-format json");
+        let mut c = claude("-p --output-format json");
         c.current_dir(std::env::temp_dir());
         let (code, out) = run_cmd(c, Some(prompt), 240)?;
         if code != 0 {
@@ -252,7 +277,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![backups, write_text, stage_restore, restart_app, get_allowlist, set_allowlist, run_allowed, repo_context, claude_ask])
+        .invoke_handler(tauri::generate_handler![backups, write_text, stage_restore, restart_app, get_allowlist, set_allowlist, run_allowed, repo_context, claude_check, claude_ask])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

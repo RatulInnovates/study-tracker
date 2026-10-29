@@ -1,7 +1,9 @@
 # Study Tracker
 
-Local-first desktop app (Tauri 2 + React + TypeScript + Tailwind v4 + SQLite) that turns the AI Engineer Roadmap 2026
-(16 levels, 165 modules, 286 sessions, 14 capstones) into daily tasks, then verifies the work with AI review and quizzes.
+Local-first desktop app (Tauri 2 + React + TypeScript + Tailwind v4 + SQLite) that turns a study roadmap into daily tasks,
+then verifies the work with AI review and quizzes. Bundled roadmap: AI Engineer Roadmap 2026 (16 levels, 165 modules, 286 sessions,
+14 capstones); users can import their own roadmap JSON (`src/domain/roadmapFile.ts` holds the format, validation and the AI prompt).
+Never hardcode AI-engineering content in features or prompts: use the roadmap name (`roadmapName(db)`) and level titles.
 Full scope and milestones: `docs/PLAN.md`. Read it before starting a feature.
 
 ## How we work: one Claude session per feature branch

@@ -10,6 +10,8 @@ import { dumpAll, getSettings, setSetting } from "../../db/settings";
 import { isoDay, replan } from "../../db/today";
 import { MAX_PER_DAY } from "../../domain/scheduler";
 import { PageHeader } from "../../ui/PageHeader";
+import { ClaudeStatus } from "./ClaudeStatus";
+import { RoadmapImport } from "./RoadmapImport";
 import { FONT_MAX, FONT_MIN, applyFontScale, applyTheme } from "./theme";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -148,6 +150,17 @@ export function SettingsPage() {
               </button>
             </div>
           </div>
+        </section>
+
+        <section aria-labelledby="roadmap" className="space-y-3">
+          <h2 id="roadmap" className="font-semibold">Roadmap</h2>
+          <p className="text-muted">Current: <span className="text-text">{s?.roadmap_name ?? "none"}</span></p>
+          <RoadmapImport hasProgress onLoaded={() => qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "boot" })} />
+        </section>
+
+        <section aria-labelledby="ai" className="space-y-3">
+          <h2 id="ai" className="font-semibold">AI features</h2>
+          <ClaudeStatus />
         </section>
 
         <section aria-labelledby="backup" className="space-y-3">

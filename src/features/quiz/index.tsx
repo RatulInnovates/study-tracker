@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { getDb } from "../../db/client";
 import { cardCounts, DAILY_CAP, dueCards, quizSessions, recentScores, reviewCard, saveAttempt, saveQuiz, topicLabels, type Card, type Quiz, type QuizSession } from "../../db/quiz";
+import { roadmapName } from "../../db/settings";
 import { askClaude } from "../../ai/claude";
 import type { Rating } from "../../domain/fsrs";
 import { buildGradePrompt, buildQuizPrompt, nextDifficulty, parseGrades, parseQuiz, scorePct, type Question, type Result } from "../../domain/quiz";
@@ -35,7 +36,7 @@ function QuizTab() {
     mutationFn: async (s: QuizSession) => {
       const db = await getDb();
       const difficulty = nextDifficulty(await recentScores(db, s.id));
-      const questions = await askParsed(buildQuizPrompt({ title: s.title, module: s.module_title, outcome: s.outcome, topics: await topicLabels(db, s.id), difficulty }), parseQuiz);
+      const questions = await askParsed(buildQuizPrompt({ topic: await roadmapName(db), title: s.title, module: s.module_title, outcome: s.outcome, topics: await topicLabels(db, s.id), difficulty }), parseQuiz);
       const q = await saveQuiz(db, s.id, difficulty, questions);
       setQuiz(q);
       setAnswers(questions.map(() => ""));
