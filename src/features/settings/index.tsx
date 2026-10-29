@@ -10,7 +10,7 @@ import { dumpAll, getSettings, setSetting } from "../../db/settings";
 import { isoDay, replan } from "../../db/today";
 import { MAX_PER_DAY } from "../../domain/scheduler";
 import { PageHeader } from "../../ui/PageHeader";
-import { applyTheme } from "./theme";
+import { FONT_MAX, FONT_MIN, applyFontScale, applyTheme } from "./theme";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const field = "rounded-sm border border-line bg-surface px-2 py-1 text-text";
@@ -28,6 +28,7 @@ export function SettingsPage() {
   const [busy, setBusy] = useState(false);
 
   const days = (s?.study_days ?? "1,2,3,4,5").split(",").filter(Boolean).map(Number);
+  const fontScale = Number(s?.font_scale) || 100;
   const perDay = Number(s?.sessions_per_day) || 2;
 
   /** Saves one key; plan-affecting keys also rebuild the schedule from today. */
@@ -129,6 +130,24 @@ export function SettingsPage() {
               <option value="light">Light</option>
             </select>
           </label>
+          <div className="flex items-center justify-between gap-4">
+            <span id="font-label">Text size</span>
+            <div role="group" aria-labelledby="font-label" className="flex items-center gap-2">
+              <button
+                className={btn} aria-label="Decrease text size" disabled={fontScale <= FONT_MIN}
+                onClick={() => { applyFontScale(String(fontScale - 10)); saveSetting("font_scale", String(fontScale - 10), false); }}
+              >
+                A−
+              </button>
+              <span className="w-12 text-center tabular-nums" aria-live="polite">{fontScale}%</span>
+              <button
+                className={btn} aria-label="Increase text size" disabled={fontScale >= FONT_MAX}
+                onClick={() => { applyFontScale(String(fontScale + 10)); saveSetting("font_scale", String(fontScale + 10), false); }}
+              >
+                A+
+              </button>
+            </div>
+          </div>
         </section>
 
         <section aria-labelledby="backup" className="space-y-3">
