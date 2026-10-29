@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { BarChart3, ClipboardCheck, Layers, MessagesSquare, CalendarCheck, FolderKanban, Map, Settings, type LucideIcon } from "lucide-react";
+import { BarChart3, ClipboardCheck, Layers, MessagesSquare, Briefcase, CalendarCheck, FolderKanban, Map, Settings, type LucideIcon } from "lucide-react";
 import { Today } from "../features/today";
 import { Roadmap } from "../features/roadmap";
 import { Projects } from "../features/projects";
@@ -8,6 +8,7 @@ import { Review } from "../features/review";
 import { Quiz } from "../features/quiz";
 import { Analytics } from "../features/analytics";
 import { Interview } from "../features/interview";
+import { Portfolio } from "../features/portfolio";
 
 export interface NavItem {
   path: string;
@@ -25,5 +26,6 @@ export const NAV: NavItem[] = [
   { path: "/quiz", label: "Quiz & Cards", icon: Layers, page: Quiz },
   { path: "/analytics", label: "Analytics", icon: BarChart3, page: Analytics },
   { path: "/interview", label: "Interview", icon: MessagesSquare, page: Interview },
+  { path: "/portfolio", label: "Portfolio", icon: Briefcase, page: Portfolio },
   { path: "/settings", label: "Settings", icon: Settings, page: SettingsPage },
 ];
