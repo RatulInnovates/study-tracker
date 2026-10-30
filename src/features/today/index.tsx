@@ -119,7 +119,7 @@ export function Today() {
             </div>
           }
         />
-        <div className="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-6 px-8 py-6 max-[1100px]:grid-cols-1">
+        <div className={`grid items-start gap-6 px-8 py-6 max-[1100px]:grid-cols-1 ${open ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_20rem]"}`}>
         <div className="flex min-w-0 flex-col gap-3">
           {!!data?.stats.overdue && (
             <div className="flex items-center justify-between gap-3 rounded-md bg-raised px-3 py-2">
@@ -154,7 +154,7 @@ export function Today() {
             </div>
           )}
         </div>
-        {data && <Overview stats={data.stats} streak={data.streak} next={data.next} />}
+        {data && !open && <Overview stats={data.stats} streak={data.streak} next={data.next} />}
         </div>
       </div>
       {open && <SessionDrawer key={open.id} session={open} onClose={() => setOpenId(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["today"] })} />}
