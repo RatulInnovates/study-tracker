@@ -4,7 +4,7 @@ import { addDays, format, parseISO } from "date-fns";
 import { Flame } from "lucide-react";
 import { getDb } from "../../db/client";
 import type { Db } from "../../db/types";
-import { doneDates, isoDay, loadPlan, planStats, pullNext, replan, sessionsOn, setDone, type SessionRow } from "../../db/today";
+import { doneDates, isoDay, loadPlan, planStats, pullNext, replan, sessionsOn, setDone, upcoming, type SessionRow } from "../../db/today";
 import { streak } from "../../domain/scheduler";
 import { EmptyState } from "../../ui/EmptyState";
 import { PageHeader } from "../../ui/PageHeader";
@@ -26,6 +26,52 @@ function Row({ s, selected, onOpen, onToggle }: { s: SessionRow; selected: boole
   );
 }
 
+function Overview({ stats, streak, next }: { stats: { remaining: number; total: number; finish: string | null }; streak: number; next: SessionRow[] }) {
+  const done = stats.total - stats.remaining;
+  const facts: [string, string][] = [
+    ["Done", `${done} / ${stats.total}`],
+    ["Remaining", String(stats.remaining)],
+    ["Projected finish", stats.finish ? format(parseISO(stats.finish), "MMM d, yyyy") : "-"],
+    ["Streak", `${streak} day${streak === 1 ? "" : "s"}`],
+  ];
+  return (
+    <aside aria-label="Overview" className="flex flex-col gap-4">
+      <section className="rounded-md border border-line bg-surface p-4">
+        <div className="flex items-center gap-4">
+          <ProgressRing value={stats.total ? done / stats.total : 0} label={`${done} of ${stats.total} sessions done overall`} />
+          <div>
+            <p className="num text-[20px] font-semibold">{stats.total ? Math.round((done / stats.total) * 100) : 0}%</p>
+            <p className="text-muted">of the roadmap</p>
+          </div>
+        </div>
+        <dl className="mt-4 divide-y divide-line">
+          {facts.map(([k, v]) => (
+            <div key={k} className="flex items-baseline justify-between gap-3 py-1.5">
+              <dt className="text-muted">{k}</dt>
+              <dd className="num">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <section className="rounded-md border border-line bg-surface p-4">
+        <h2 className="mb-2 font-medium">Coming up</h2>
+        {next.length ? (
+          <ul className="space-y-2">
+            {next.map((n) => (
+              <li key={n.id} className="min-w-0">
+                <p className="truncate" title={n.title}>{n.title}</p>
+                <p className="num text-[12px] text-muted">{n.scheduled_date ? format(parseISO(n.scheduled_date), "EEE, MMM d") : "unscheduled"} · L{n.level_num} · {n.est_minutes}m</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted">Nothing queued after today.</p>
+        )}
+      </section>
+    </aside>
+  );
+}
+
 export function Today() {
   const qc = useQueryClient();
   const today = isoDay();
@@ -41,7 +87,7 @@ export function Today() {
         stats = await planStats(db, today);
       }
       const plan = await loadPlan(db);
-      return { sessions: await sessionsOn(db, today), stats, streak: streak(await doneDates(db), today, plan.studyDays) };
+      return { sessions: await sessionsOn(db, today), next: await upcoming(db, today), stats, streak: streak(await doneDates(db), today, plan.studyDays) };
     },
   });
 
@@ -73,7 +119,8 @@ export function Today() {
             </div>
           }
         />
-        <div className="flex flex-col gap-3 px-8 py-6">
+        <div className="grid grid-cols-[minmax(0,1fr)_20rem] items-start gap-6 px-8 py-6 max-[1100px]:grid-cols-1">
+        <div className="flex min-w-0 flex-col gap-3">
           {!!data?.stats.overdue && (
             <div className="flex items-center justify-between gap-3 rounded-md bg-raised px-3 py-2">
               <span>
@@ -106,6 +153,8 @@ export function Today() {
               </button>
             </div>
           )}
+        </div>
+        {data && <Overview stats={data.stats} streak={data.streak} next={data.next} />}
         </div>
       </div>
       {open && <SessionDrawer key={open.id} session={open} onClose={() => setOpenId(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["today"] })} />}
