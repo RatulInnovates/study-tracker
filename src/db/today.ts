@@ -47,16 +47,20 @@ const SESSION_SQL = `SELECT s.id, s.module_id, s.title, s.kind, s.est_minutes, s
 export const sessionsOn = (db: Db, date: string) => db.select<SessionRow>(`${SESSION_SQL} WHERE s.scheduled_date = ? ORDER BY s.seq`, [date]);
 
 export async function planStats(db: Db, today: string) {
-  const [r] = await db.select<{ overdue: number; unscheduled: number; finish: string | null; remaining: number }>(
+  const [r] = await db.select<{ overdue: number; unscheduled: number; finish: string | null; remaining: number; total: number }>(
     `SELECT
        (SELECT COUNT(*) FROM sessions WHERE status = 'todo' AND scheduled_date < ?) overdue,
        (SELECT COUNT(*) FROM sessions WHERE status = 'todo' AND scheduled_date IS NULL) unscheduled,
        (SELECT MAX(scheduled_date) FROM sessions WHERE status = 'todo') finish,
-       (SELECT COUNT(*) FROM sessions WHERE status = 'todo') remaining`,
+       (SELECT COUNT(*) FROM sessions WHERE status = 'todo') remaining,
+       (SELECT COUNT(*) FROM sessions) total`,
     [today],
   );
   return r;
 }
+
+export const upcoming = (db: Db, date: string, n = 5) =>
+  db.select<SessionRow>(`${SESSION_SQL} WHERE s.status = 'todo' AND s.scheduled_date > ? ORDER BY s.seq LIMIT ?`, [date, n]);
 
 export async function doneDates(db: Db) {
   return (await db.select<{ d: string }>("SELECT DISTINCT substr(completed_at, 1, 10) d FROM sessions WHERE completed_at IS NOT NULL")).map((r) => r.d);

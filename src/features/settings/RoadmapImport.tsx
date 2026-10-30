@@ -38,7 +38,7 @@ export function RoadmapImport({ hasProgress, onLoaded }: { hasProgress: boolean;
       const db = await getDb();
       if (hasProgress) {
         const info = await invoke<{ dir: string }>("backups");
-        await db.execute("VACUUM INTO ?", [`${info.dir}\\before-import-${new Date().toISOString().replace(/[:.]/g, "-")}.db`]);
+        await db.execute("VACUUM INTO ?", [`${info.dir}/before-import-${new Date().toISOString().replace(/[:.]/g, "-")}.db`]);
       }
       await replaceRoadmap(db, data);
       toast.success(`Loaded "${data.name}"`);
