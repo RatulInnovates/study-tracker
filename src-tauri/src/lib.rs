@@ -44,6 +44,10 @@ fn backups(app: AppHandle) -> Result<Backups, String> {
 
 #[tauri::command]
 fn write_text(path: String, contents: String) -> Result<(), String> {
+    // Only used for the JSON export; refuse anything else so a compromised page can't overwrite arbitrary files.
+    if !path.to_lowercase().ends_with(".json") {
+        return Err("write_text only writes .json files".into());
+    }
     fs::write(path, contents).map_err(|e| e.to_string())
 }
 
@@ -145,6 +149,12 @@ fn run_cmd(mut cmd: Command, stdin: Option<String>, secs: u64) -> Result<(i32, S
             break st.code().unwrap_or(-1);
         }
         if Instant::now() > deadline {
+            // `cmd /C claude` leaves claude running after cmd is killed (and holds our pipes open); kill the whole tree.
+            #[cfg(windows)]
+            {
+                use std::os::windows::process::CommandExt;
+                let _ = Command::new("taskkill").args(["/PID", &child.id().to_string(), "/T", "/F"]).creation_flags(0x0800_0000).output();
+            }
             let _ = child.kill();
             let _ = child.wait();
             return Err(format!("timed out after {secs}s"));
@@ -213,7 +223,7 @@ async fn repo_context(repo: String, base: String) -> Result<String, String> {
             return Err(format!("not a git repo or git failed:\n{status}"));
         }
         let (code, diff) = git(&[
-            "diff", &base, "--", ".", ":(exclude,glob)**/.env*", ":(exclude,glob)**/*.pem", ":(exclude,glob)**/*.key", ":(exclude,glob)**/id_rsa*",
+            "diff", "--no-ext-diff", "--no-textconv", &base, "--", ".", ":(exclude,glob)**/.env*", ":(exclude,glob)**/*.pem", ":(exclude,glob)**/*.key", ":(exclude,glob)**/id_rsa*",
         ])?;
         if code != 0 {
             return Err(format!("git diff {base} failed:\n{diff}"));

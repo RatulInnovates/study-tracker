@@ -77,7 +77,7 @@ export function SettingsPage() {
       if (!src) return;
       if (!window.confirm("Replace ALL current data with this backup? The app restarts. Current data is saved first in the backups folder.")) return;
       const info = await invoke<Backups>("backups");
-      await (await getDb()).execute("VACUUM INTO ?", [`${info.dir}\\before-restore-${stamp()}.db`]);
+      await (await getDb()).execute("VACUUM INTO ?", [`${info.dir}/before-restore-${stamp()}.db`]);
       await invoke("stage_restore", { src });
       await invoke("restart_app");
     });
